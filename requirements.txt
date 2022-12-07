@@ -14,3 +14,4 @@ numpy
 matplotlib==3.5.1
 pandas
 ipython
+flask
