@@ -55,10 +55,7 @@ def preprocessing(data, num_imputer, bin_imputer, transformer, scaler):
     features_df = df.nunique()
     num_features = list(features_df[features_df != 2].index)
     binary_features = list(features_df[features_df == 2].index)
-    #df['NAME_FAMILY_STATUS_Unknown'] = 0
-    #binary_features.append('NAME_FAMILY_STATUS_Unknown')
-    #st.write(len(binary_features))
-    #st.write(binary_features)
+
 
     # Imputations
     X_num = pd.DataFrame(num_imputer.transform(df[num_features]),
@@ -94,9 +91,9 @@ def request_prediction(model_uri, data):
     # API response
     api_response = response.json()
     score = api_response['score']
-    situation = api_response['class']
+    result = api_response['class']
     status = api_response['application']
-    return score, situation, status
+    return score, result, status
 
 
 def load_model(file, key):
@@ -170,7 +167,11 @@ def main():
     
     X = X.drop(['SK_ID_CURR'], axis=1)
     X= X[relevant_features]
-    
+
+    #Dashboard request
+    # Local API URI
+    API_URI = 'http://127.0.0.1:5000/predict'
+    score, result, status = request_prediction(API_URI, X)
     
     #Visualisation according to new advice
     dash=data.drop(['SK_ID_CURR'], axis=1)
@@ -194,39 +195,19 @@ def main():
     
     
     st.header('''Credit application result''')
-    #prediction
-    y_proba = model.predict_proba(np.array(X))[0][1]
 
-    # Looking for the customer situation (class 0 or 1)
-    # by using the best threshold from precision-recall curve
-    y_class = round(y_proba, 2)
-    best_threshold = 0.37
-    customer_class = np.where(y_class > best_threshold, 1, 0)
-
-    # Customer score calculation
-    score = int(y_class * 100)
-
-    # Customer credit application result
-    if customer_class == 1:
-        result = 'at risk of default'
-        status = 'refused'
-    else:
-        result = 'no risk of default'
-        status = 'accepted'
-    
-    #prediction
-    st.write("* **The credit score is between 0 & 100. "
-             "Clients with a score greater than *37* are at risk of default.**")
+    #score, situation, status = request_prediction(API_URI, X)
     st.write("* **Class 0: client does not default**")
     st.write("* **Class 1: client defaults**")
     st.write("Client N°{} credit score is **{}**. "
                  "The client is classified as **{}**, "
                  "the credit application is **{}**.".format(customer_id, score,
-                                                       customer_class, status))
-    if customer_class == 0: 
-        st.success("Client's loan application is successful :thumbsup:")
-    else: 
-        st.error("Client's loan application is unsuccessful :thumbsdown:") 
+                                                           result, status))
+    best_threshold = 0.37
+    # if customer_class == 0: 
+    #     st.success("Client's loan application is successful :thumbsup:")
+    # else: 
+    #     st.error("Client's loan application is unsuccessful :thumbsdown:") 
 
     #visualisation showing score and threshold
     def color(status):
@@ -240,10 +221,10 @@ def main():
                                 value = score,
                                 number = {'font':{'size':48}},
                                 domain = {'x': [0, 1], 'y': [0, 1]},
-                                title = {'text': "Customer's Request Status", 'font': {'size': 28, 'color':color(customer_class)}},
+                                title = {'text': "Customer's Request Status", 'font': {'size': 28, 'color':color(status)}},
                                 delta = {'reference': (best_threshold *100), 'increasing': {'color': "red"},'decreasing':{'color':'green'}},
-                                gauge = {'axis': {'range': [0,100], 'tickcolor': color(customer_class)},
-                                         'bar': {'color': color(customer_class)},
+                                gauge = {'axis': {'range': [0,100], 'tickcolor': color(status)},
+                                         'bar': {'color': color(status)},
                                          'steps': [{'range': [0,(best_threshold *100)], 'color': 'lightgreen'},
                                                     {'range': [(best_threshold *100),100], 'color': 'lightcoral'}],
                                          'threshold': {'line': {'color': "black", 'width': 5},
@@ -253,7 +234,7 @@ def main():
 
     
     
-    if status=='accepted':
+    if status=='Loan is accepted':
         original_title = '<p style="font-family:Courier; color:GREEN; font-size:65px; text-align: center;">Loan is accepted</p>'#.format()
         st.markdown(original_title, unsafe_allow_html=True)
     else :

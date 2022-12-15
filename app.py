@@ -6,6 +6,7 @@ import pickle
 
 from flask import Flask, request
 
+
 app = Flask(__name__)
 app.config["DEBUG"] = True
 
@@ -41,8 +42,8 @@ def predict():
 
     # Making prediction
         #prediction
-    y_proba = model.predict_proba(np.array(X))[0][1]
-
+    #y_proba = model.predict_proba(np.array(X))[0][1]
+    y_proba = model.predict_proba(([data]))[0][1]
     # Looking for the customer situation (class 0 or 1)
     # by using the best threshold from precision-recall curve
     y_class = round(y_proba, 2)
@@ -54,11 +55,11 @@ def predict():
 
     # Customer credit application result
     if customer_class == 1:
-        result = 'at risk of default'
-        status = 'refused'
+        result = 'At risk of default'
+        status = 'Loan is refused'
     else:
-        result = 'no risk of default'
-        status = 'accepted'
+        result = 'No risk of default'
+        status = 'Loan is accepted'
 
     # API response to the dashboard
     response = json.dumps(
